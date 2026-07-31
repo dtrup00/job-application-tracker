@@ -61,6 +61,14 @@ if (cmd === 'add') {
   if (args.status) {
     if (!VALID_STATUS.includes(args.status)) { console.error(`Invalid status. Use: ${VALID_STATUS.join(', ')}`); process.exit(1); }
     rec.status = args.status;
+    // Auto-record the first response time when a recruiter responds.
+    const RESPONDED = ['interview', 'offer', 'rejected'];
+    if (RESPONDED.includes(args.status) && !rec.respondedAt) {
+      rec.respondedAt = new Date().toISOString();
+    }
+  }
+  if (args.respondedAt !== undefined) {
+    rec.respondedAt = args.respondedAt === true ? new Date().toISOString() : args.respondedAt;
   }
   if (args.notes !== undefined) rec.notes = args.notes === true ? '' : args.notes;
   rec.updatedAt = new Date().toISOString();

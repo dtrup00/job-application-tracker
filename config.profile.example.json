@@ -14,7 +14,15 @@
   "resumePath": "resume/resume.pdf",
   "dashboard": {
     "anonymize": true,
-    "publicFields": ["id", "title", "platform", "status", "appliedAt", "updatedAt"]
+    "publicFields": [
+      "id",
+      "title",
+      "platform",
+      "status",
+      "appliedAt",
+      "updatedAt",
+      "respondedAt"
+    ]
   },
   "coverLetterDefault": "Dear Hiring Team,\n\nI am excited to apply for this role. Please find my resume attached. I would welcome the chance to discuss how my experience fits your team.\n\nBest regards,\nYour Name",
   "commonAnswers": {

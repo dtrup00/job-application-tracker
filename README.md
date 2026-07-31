@@ -33,7 +33,20 @@ personal info never gets pushed to the public repo.
 
 ## Usage
 
-### 1. Apply to a job (semi-automated)
+### 1. Upload your resume (local web page)
+```bash
+npm start          # opens a LOCAL app at http://localhost:4321
+```
+Drag & drop your resume. It is saved into `resume/` with the **exact original
+filename and format, byte-for-byte** (verified via checksum) — so your **ATS score
+is never affected**. The app also auto-sets `resumePath` in `config.profile.json`.
+
+> This upload page runs only on your machine. GitHub Pages is static and cannot
+> receive uploads, so the live site cannot store files — by design.
+
+Uploaded resumes are **git-ignored** and never pushed to the public repo.
+
+### 2. Apply to a job (semi-automated)
 ```bash
 npm run apply -- "https://job-url-here"
 ```

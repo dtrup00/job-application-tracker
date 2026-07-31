@@ -38,6 +38,16 @@
   .skipped { background: var(--skipped); } .ghosted { background: var(--ghosted); color:#000; }
   .empty { text-align: center; color: var(--muted); padding: 48px; }
   body.anon .col-company, body.anon .col-link { display: none; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 20px 0; }
+  .chart-title { margin: 0 0 14px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 92px; align-items: center; gap: 12px; margin: 8px 0; }
+  .bar-label { font-size: 13px; color: var(--text); text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { background: #0f1115; border: 1px solid var(--border); border-radius: 6px; height: 20px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--interview), var(--offer)); border-radius: 6px 0 0 6px; transition: width .4s; }
+  .bar-meta { font-size: 12px; color: var(--muted); text-align: right; }
+  .pill { font-size: 12px; color: var(--muted); }
+  .resp-yes { color: var(--offer); font-weight: 600; }
+  .resp-no { color: var(--muted); }
   .foot { color: var(--muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -50,6 +60,10 @@
 </header>
 <div class="wrap">
   <div class="stats" id="stats"></div>
+  <div class="card" id="chartCard">
+    <h2 class="chart-title">Per-platform response rate</h2>
+    <div id="chart"></div>
+  </div>
   <div class="controls">
     <input type="search" id="search" placeholder="Search company, title, platform…" />
     <select id="statusFilter"><option value="">All statuses</option></select>
@@ -63,6 +77,8 @@
         <th data-sort="platform">Platform</th>
         <th data-sort="status">Status</th>
         <th data-sort="appliedAt">Applied</th>
+        <th data-sort="daysSince">Days ago</th>
+        <th data-sort="response">Response</th>
         <th class="col-link">Link</th>
       </tr>
     </thead>
@@ -83,6 +99,17 @@ function fmtDate(iso) {
   return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
 }
 
+function daysSince(iso) {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(ms / 86400000));
+}
+
+const RESPONDED_STATUSES = ['interview', 'offer', 'rejected'];
+function hasResponse(a) {
+  return !!a.respondedAt || RESPONDED_STATUSES.includes(a.status);
+}
+
 function render() {
   const q = document.getElementById('search').value.toLowerCase();
   const sf = document.getElementById('statusFilter').value;
@@ -92,23 +119,56 @@ function render() {
     const hay = (a.company+' '+a.title+' '+a.platform+' '+(a.notes||'')).toLowerCase();
     return (!q || hay.includes(q)) && (!sf || a.status===sf) && (!pf || a.platform===pf);
   });
+  // derived sort keys
+  rows.forEach(a => { a.daysSince = daysSince(a.appliedAt); a.response = hasResponse(a) ? 1 : 0; });
   rows.sort((x,y) => {
-    const a = (x[sortKey]||'').toString().toLowerCase();
-    const b = (y[sortKey]||'').toString().toLowerCase();
+    let a = x[sortKey], b = y[sortKey];
+    if (sortKey === 'daysSince' || sortKey === 'response') { a = a ?? -1; b = b ?? -1; return (a - b) * sortDir; }
+    a = (a||'').toString().toLowerCase(); b = (b||'').toString().toLowerCase();
     return a < b ? -sortDir : a > b ? sortDir : 0;
   });
 
   const tbody = document.getElementById('rows');
-  tbody.innerHTML = rows.map(a => `
+  tbody.innerHTML = rows.map(a => {
+    const dsen = a.daysSince;
+    const daysTxt = dsen === null ? '—' : (dsen === 0 ? 'today' : dsen + 'd');
+    const resp = hasResponse(a)
+      ? `<span class="resp-yes">✓ ${a.respondedAt ? fmtDate(a.respondedAt) : 'yes'}</span>`
+      : `<span class="resp-no">—</span>`;
+    return `
     <tr>
       <td class="col-company">${esc(a.company)||'—'}</td>
       <td>${esc(a.title)||'—'}</td>
       <td>${esc(a.platform)||'—'}</td>
       <td><span class="badge ${a.status}">${a.status}</span></td>
       <td>${fmtDate(a.appliedAt)}</td>
+      <td><span class="pill">${daysTxt}</span></td>
+      <td>${resp}</td>
       <td class="col-link">${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">open</a>` : '—'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+}
+
+function buildChart() {
+  const byPlatform = {};
+  ALL.forEach(a => {
+    const p = a.platform || 'other';
+    byPlatform[p] = byPlatform[p] || { total: 0, responded: 0 };
+    byPlatform[p].total++;
+    if (hasResponse(a)) byPlatform[p].responded++;
+  });
+  const entries = Object.entries(byPlatform).sort((a, b) => b[1].total - a[1].total);
+  const chart = document.getElementById('chart');
+  if (!entries.length) { chart.innerHTML = '<span class="pill">No data yet.</span>'; return; }
+  chart.innerHTML = entries.map(([p, s]) => {
+    const rate = s.total ? Math.round((s.responded / s.total) * 100) : 0;
+    return `<div class="bar-row">
+      <span class="bar-label" title="${esc(p)}">${esc(p)}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${rate}%"></span></span>
+      <span class="bar-meta">${rate}% (${s.responded}/${s.total})</span>
+    </div>`;
+  }).join('');
 }
 
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -146,7 +206,7 @@ fetch('applications.json?_=' + Date.now())
     document.getElementById('generated').textContent =
       `${ALL.length} applications • updated ${d.generatedAt ? fmtDate(d.generatedAt) : '—'}`;
     if (d.anonymized) document.body.classList.add('anon');
-    buildStats(); buildFilters(); render();
+    buildStats(); buildFilters(); buildChart(); render();
   })
   .catch(() => { document.getElementById('generated').textContent = 'Could not load applications.json'; });
 </script>
