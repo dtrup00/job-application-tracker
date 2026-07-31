@@ -1,0 +1,16 @@
+{
+  "name": "job-apply-automation",
+  "version": "1.0.0",
+  "description": "Human-in-the-loop job application assistant + status dashboard",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "apply": "node src/apply.js",
+    "log": "node src/log.js",
+    "build-dashboard": "node src/build-dashboard.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}

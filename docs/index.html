@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Application Tracker</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #1a1d24; --border: #2a2f3a; --text: #e6e8eb;
+    --muted: #8b93a1; --accent: #4f8cff;
+    --applied: #3b82f6; --interview: #a855f7; --offer: #22c55e;
+    --rejected: #ef4444; --skipped: #6b7280; --ghosted: #eab308;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); }
+  header { padding: 32px 24px 16px; }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px 48px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 20px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .stat .n { font-size: 26px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+  input[type=search], select { background: var(--card); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 12px; border-radius: 8px; font-size: 14px; }
+  input[type=search] { flex: 1; min-width: 200px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; cursor: pointer; }
+  tr:hover td { background: #161922; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
+  .applied { background: var(--applied); } .interview { background: var(--interview); }
+  .offer { background: var(--offer); } .rejected { background: var(--rejected); }
+  .skipped { background: var(--skipped); } .ghosted { background: var(--ghosted); color:#000; }
+  .empty { text-align: center; color: var(--muted); padding: 48px; }
+  body.anon .col-company, body.anon .col-link { display: none; }
+  .foot { color: var(--muted); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Job Application Tracker</h1>
+    <div class="sub" id="generated">Loading…</div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search company, title, platform…" />
+    <select id="statusFilter"><option value="">All statuses</option></select>
+    <select id="platformFilter"><option value="">All platforms</option></select>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th data-sort="company" class="col-company">Company</th>
+        <th data-sort="title">Role</th>
+        <th data-sort="platform">Platform</th>
+        <th data-sort="status">Status</th>
+        <th data-sort="appliedAt">Applied</th>
+        <th class="col-link">Link</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" style="display:none">No applications yet. Run the apply/log tools and rebuild.</div>
+  <div class="foot">Static dashboard • data from applications.json</div>
+</div>
+<script>
+let ALL = [];
+let sortKey = 'appliedAt', sortDir = -1;
+
+const STATUSES = ['applied','interview','offer','rejected','skipped','ghosted'];
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const sf = document.getElementById('statusFilter').value;
+  const pf = document.getElementById('platformFilter').value;
+
+  let rows = ALL.filter(a => {
+    const hay = (a.company+' '+a.title+' '+a.platform+' '+(a.notes||'')).toLowerCase();
+    return (!q || hay.includes(q)) && (!sf || a.status===sf) && (!pf || a.platform===pf);
+  });
+  rows.sort((x,y) => {
+    const a = (x[sortKey]||'').toString().toLowerCase();
+    const b = (y[sortKey]||'').toString().toLowerCase();
+    return a < b ? -sortDir : a > b ? sortDir : 0;
+  });
+
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td class="col-company">${esc(a.company)||'—'}</td>
+      <td>${esc(a.title)||'—'}</td>
+      <td>${esc(a.platform)||'—'}</td>
+      <td><span class="badge ${a.status}">${a.status}</span></td>
+      <td>${fmtDate(a.appliedAt)}</td>
+      <td class="col-link">${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">open</a>` : '—'}</td>
+    </tr>`).join('');
+  document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+}
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function buildStats() {
+  const counts = {}; STATUSES.forEach(s => counts[s]=0);
+  ALL.forEach(a => counts[a.status] = (counts[a.status]||0)+1);
+  const el = document.getElementById('stats');
+  el.innerHTML = `<div class="stat"><div class="n">${ALL.length}</div><div class="l">Total</div></div>` +
+    STATUSES.map(s => `<div class="stat"><div class="n">${counts[s]||0}</div><div class="l">${s}</div></div>`).join('');
+}
+
+function buildFilters() {
+  const sf = document.getElementById('statusFilter');
+  STATUSES.forEach(s => sf.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+  const pf = document.getElementById('platformFilter');
+  [...new Set(ALL.map(a => a.platform).filter(Boolean))].sort()
+    .forEach(p => pf.insertAdjacentHTML('beforeend', `<option value="${p}">${p}</option>`));
+}
+
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
+    render();
+  });
+});
+['search','statusFilter','platformFilter'].forEach(id =>
+  document.getElementById(id).addEventListener('input', render));
+
+fetch('applications.json?_=' + Date.now())
+  .then(r => r.json())
+  .then(d => {
+    ALL = d.applications || [];
+    document.getElementById('generated').textContent =
+      `${ALL.length} applications • updated ${d.generatedAt ? fmtDate(d.generatedAt) : '—'}`;
+    if (d.anonymized) document.body.classList.add('anon');
+    buildStats(); buildFilters(); render();
+  })
+  .catch(() => { document.getElementById('generated').textContent = 'Could not load applications.json'; });
+</script>
+</body>
+</html>

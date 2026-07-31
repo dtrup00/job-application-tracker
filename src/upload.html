@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Upload Resume</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --border:#2a2f3a; --text:#e6e8eb; --muted:#8b93a1; --accent:#4f8cff; --ok:#22c55e; --err:#ef4444; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width:640px; margin:0 auto; padding:40px 24px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:20px; }
+  .drop { border:2px dashed var(--border); border-radius:12px; padding:40px 20px; text-align:center; cursor:pointer; transition:.15s; }
+  .drop.drag { border-color:var(--accent); background:#161b26; }
+  .drop p { margin:8px 0; color:var(--muted); }
+  .drop strong { color:var(--text); }
+  input[type=file] { display:none; }
+  button { background:var(--accent); color:#fff; border:0; padding:11px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; margin-top:16px; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .msg { margin-top:16px; font-size:14px; padding:12px 14px; border-radius:8px; display:none; }
+  .msg.ok { display:block; background:rgba(34,197,94,.12); color:var(--ok); border:1px solid rgba(34,197,94,.3); }
+  .msg.err { display:block; background:rgba(239,68,68,.12); color:var(--err); border:1px solid rgba(239,68,68,.3); }
+  .filelist { font-size:13px; }
+  .filelist .f { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+  .filelist .f:last-child { border-bottom:0; }
+  .filelist .n { color:var(--text); }
+  .filelist .meta { color:var(--muted); }
+  .note { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 12px; }
+  .selected { margin-top:12px; font-size:14px; color:var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Upload Resume</h1>
+  <div class="sub">Local only &middot; saved into <code>resume/</code> with the original filename &amp; format, unchanged.</div>
+
+  <div class="card">
+    <div class="drop" id="drop">
+      <p><strong>Drag &amp; drop</strong> your resume here</p>
+      <p>or</p>
+      <p><strong>click to browse</strong></p>
+      <input type="file" id="file" accept=".pdf,.doc,.docx,.rtf,.txt,.odt" />
+    </div>
+    <div class="selected" id="selected"></div>
+    <button id="uploadBtn" disabled>Upload &amp; save to directory</button>
+    <div class="msg" id="msg"></div>
+    <div class="note">
+      The file is written byte-for-byte identical &mdash; no re-encoding, no rename &mdash;
+      so your ATS score is never affected. Allowed: pdf, doc, docx, rtf, txt, odt.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Currently in resume/</h2>
+    <div class="filelist" id="filelist"><span class="meta">Loading…</span></div>
+  </div>
+</div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const uploadBtn = document.getElementById('uploadBtn');
+const selected = document.getElementById('selected');
+const msg = document.getElementById('msg');
+let chosen = null;
+
+function fmtSize(b){ if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
+function showMsg(text, ok){ msg.textContent = text; msg.className = 'msg ' + (ok?'ok':'err'); }
+
+function pick(f){
+  chosen = f;
+  selected.textContent = f ? `Selected: ${f.name} (${fmtSize(f.size)})` : '';
+  uploadBtn.disabled = !f;
+  msg.className = 'msg';
+}
+
+drop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => pick(fileInput.files[0]));
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => { if(e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]); });
+
+uploadBtn.addEventListener('click', async () => {
+  if(!chosen) return;
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('resume', chosen, chosen.name); // preserves original filename
+    const r = await fetch('/api/upload', { method:'POST', body: fd });
+    const d = await r.json();
+    if(d.ok){ showMsg(`Saved as ${d.savedAs} (${fmtSize(d.size)}) → ${d.path}`, true); loadFiles(); }
+    else showMsg(d.error || 'Upload failed', false);
+  } catch(e){ showMsg('Upload failed: ' + e.message, false); }
+  finally { uploadBtn.disabled = false; uploadBtn.textContent = 'Upload & save to directory'; }
+});
+
+async function loadFiles(){
+  try {
+    const r = await fetch('/api/current');
+    const d = await r.json();
+    const el = document.getElementById('filelist');
+    if(!d.files.length){ el.innerHTML = '<span class="meta">No resume uploaded yet.</span>'; return; }
+    el.innerHTML = d.files.map(f =>
+      `<div class="f"><span class="n">${f.name}</span><span class="meta">${fmtSize(f.size)}</span></div>`).join('');
+  } catch { document.getElementById('filelist').innerHTML = '<span class="meta">Could not load.</span>'; }
+}
+loadFiles();
+</script>
+</body>
+</html>

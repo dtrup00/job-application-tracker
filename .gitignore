@@ -1,0 +1,18 @@
+# Never commit your logged-in browser session
+.browser-profile/
+
+# Never commit your personal profile (email/phone/etc). Use the .example template.
+config.profile.json
+
+# Your raw application log stays private (dashboard publishes an anonymized copy)
+data/applications.json
+
+# Node
+node_modules/
+
+# Your actual resume file (optional: keep private)
+resume/*.pdf
+resume/*.docx
+
+# OS
+.DS_Store

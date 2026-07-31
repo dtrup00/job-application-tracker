@@ -1,0 +1,29 @@
+{
+  "fullName": "Your Name",
+  "email": "you@example.com",
+  "phone": "+91-0000000000",
+  "location": "City, Country",
+  "linkedin": "https://linkedin.com/in/yourhandle",
+  "github": "https://github.com/yourhandle",
+  "portfolio": "",
+  "currentCompany": "",
+  "currentTitle": "",
+  "experienceYears": "",
+  "expectedCTC": "",
+  "noticePeriodDays": "",
+  "resumePath": "resume/resume.pdf",
+  "dashboard": {
+    "anonymize": true,
+    "publicFields": ["id", "title", "platform", "status", "appliedAt", "updatedAt"]
+  },
+  "coverLetterDefault": "Dear Hiring Team,\n\nI am excited to apply for this role. Please find my resume attached. I would welcome the chance to discuss how my experience fits your team.\n\nBest regards,\nYour Name",
+  "commonAnswers": {
+    "authorizedToWork": "Yes",
+    "requireSponsorship": "No",
+    "willingToRelocate": "Yes",
+    "gender": "",
+    "ethnicity": "",
+    "veteranStatus": "",
+    "disabilityStatus": ""
+  }
+}
