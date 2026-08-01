@@ -38,6 +38,7 @@
   .skipped { background: var(--skipped); } .ghosted { background: var(--ghosted); color:#000; }
   .empty { text-align: center; color: var(--muted); padding: 48px; }
   body.anon .col-company, body.anon .col-link { display: none; }
+  body.has-company .col-company { display: table-cell; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 20px 0; }
   .chart-title { margin: 0 0 14px; }
   .bar-row { display: grid; grid-template-columns: 110px 1fr 92px; align-items: center; gap: 12px; margin: 8px 0; }
@@ -206,6 +207,8 @@ fetch('applications.json?_=' + Date.now())
     document.getElementById('generated').textContent =
       `${ALL.length} applications • updated ${d.generatedAt ? fmtDate(d.generatedAt) : '—'}`;
     if (d.anonymized) document.body.classList.add('anon');
+    // Show the company column whenever any record actually has a company value.
+    if (ALL.some(a => a.company)) document.body.classList.add('has-company');
     buildStats(); buildFilters(); buildChart(); render();
   })
   .catch(() => { document.getElementById('generated').textContent = 'Could not load applications.json'; });

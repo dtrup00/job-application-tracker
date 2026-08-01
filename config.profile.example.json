@@ -16,6 +16,7 @@
     "anonymize": true,
     "publicFields": [
       "id",
+      "company",
       "title",
       "platform",
       "status",

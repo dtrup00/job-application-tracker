@@ -2,6 +2,7 @@
   "applications": [
     {
       "id": "msahq4pj",
+      "company": "PocketFM",
       "title": "Software Developer",
       "platform": "instahyre",
       "status": "applied",
@@ -10,5 +11,5 @@
     }
   ],
   "anonymized": true,
-  "generatedAt": "2026-08-01T14:52:34.723Z"
+  "generatedAt": "2026-08-01T15:16:22.187Z"
 }
