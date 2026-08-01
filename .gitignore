@@ -10,6 +10,9 @@ data/applications.json
 # Node
 node_modules/
 
+# Local registry override (environment-specific, e.g. bypassing a corporate registry)
+.npmrc
+
 # Your actual resume file (optional: keep private)
 resume/*.pdf
 resume/*.docx

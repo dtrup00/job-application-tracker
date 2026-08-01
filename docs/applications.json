@@ -1,5 +1,14 @@
 {
-  "applications": [],
+  "applications": [
+    {
+      "id": "msahq4pj",
+      "title": "Software Developer",
+      "platform": "instahyre",
+      "status": "applied",
+      "appliedAt": "2026-08-01T00:00:00.000Z",
+      "updatedAt": "2026-08-01T14:52:29.912Z"
+    }
+  ],
   "anonymized": true,
-  "generatedAt": "2026-07-31T14:59:22.836Z"
+  "generatedAt": "2026-08-01T14:52:34.723Z"
 }
